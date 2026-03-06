@@ -1,0 +1,419 @@
+{%- assign is_disallowed_page = false -%}
+{%- if request.page_type == 'cart' or request.page_type == 'checkout' or request.page_type contains 'customers' -%}
+  {%- assign is_disallowed_page = true -%}
+{%- endif -%}
+
+{%- assign awareness_id = 'popup-' | append: section.id | append: '-awareness' -%}
+{%- assign conversion_id = 'popup-' | append: section.id | append: '-conversion' -%}
+{%- assign awareness_storage_key = 'popup_awareness_' | append: section.id -%}
+{%- assign conversion_storage_key = 'popup_conversion_' | append: section.id -%}
+
+{%- if section.settings.awareness_enabled -%}
+  {% render 'popup-base',
+    popup_id: awareness_id,
+    popup_type: 'awareness',
+    title: section.settings.awareness_title,
+    description: section.settings.awareness_description,
+    image: section.settings.awareness_image,
+    image_url: section.settings.awareness_image_url,
+    button_label: section.settings.awareness_button_label,
+    button_link: section.settings.awareness_button_link,
+    background_color: section.settings.awareness_background_color,
+    text_color: section.settings.awareness_text_color,
+    max_width: section.settings.awareness_max_width,
+    padding: section.settings.awareness_padding,
+    border_radius: section.settings.awareness_border_radius,
+    overlay_opacity: section.settings.awareness_overlay_opacity,
+    delay: section.settings.awareness_delay,
+    auto_close: section.settings.awareness_auto_close,
+    lock_scroll: false,
+    overlay_close: section.settings.awareness_overlay_close,
+    storage_type: 'session',
+    storage_key: awareness_storage_key,
+    disabled: is_disallowed_page
+  %}
+{%- endif -%}
+
+{%- if section.settings.conversion_enabled -%}
+  {% render 'popup-base',
+    popup_id: conversion_id,
+    popup_type: 'conversion',
+    title: section.settings.conversion_title,
+    description: section.settings.conversion_description,
+    image: section.settings.conversion_image,
+    image_url: section.settings.conversion_image_url,
+    promo_code: section.settings.conversion_promo_code,
+    button_label: section.settings.conversion_button_label,
+    button_link: section.settings.conversion_button_link,
+    background_color: section.settings.conversion_background_color,
+    text_color: section.settings.conversion_text_color,
+    max_width: section.settings.conversion_max_width,
+    padding: section.settings.conversion_padding,
+    border_radius: section.settings.conversion_border_radius,
+    overlay_opacity: section.settings.conversion_overlay_opacity,
+    delay: section.settings.conversion_delay,
+    auto_close: 0,
+    lock_scroll: true,
+    overlay_close: section.settings.conversion_overlay_close,
+    storage_type: 'local',
+    storage_key: conversion_storage_key,
+    awareness_key: awareness_storage_key,
+    disabled: is_disallowed_page
+  %}
+{%- endif -%}
+
+<style>
+  popup-system {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    z-index: 1000;
+    contain: layout paint;
+    opacity: 0;
+    transition: opacity 220ms ease;
+    --popup-bg: #ffffff;
+    --popup-text: #1a1a1a;
+    --popup-max-width: 520px;
+    --popup-padding: 24px;
+    --popup-radius: 12px;
+    --popup-overlay-opacity: 0.45;
+  }
+
+  popup-system[hidden] {
+    display: none;
+  }
+
+  popup-system .popup-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, var(--popup-overlay-opacity));
+  }
+
+  popup-system .popup-dialog {
+    position: relative;
+    z-index: 1;
+    width: min(100%, var(--popup-max-width));
+    max-height: calc(100vh - 32px);
+    overflow: hidden;
+    margin: 0 16px;
+    background: var(--popup-bg);
+    color: var(--popup-text);
+    border-radius: var(--popup-radius);
+    padding: 0;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+    transition: transform 300ms ease, opacity 300ms ease;
+  }
+
+  popup-system .popup-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 52px;
+    height: 52px;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    color: #ffffff;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    z-index: 2;
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  popup-system .popup-close:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+  }
+
+  popup-system .popup-media {
+    position: relative;
+    width: 100%;
+  }
+
+  popup-system .popup-media--only img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  popup-system .popup-media--background {
+    aspect-ratio: 4 / 3;
+    background-size: cover;
+    background-position: center;
+    display: grid;
+    place-items: center;
+    padding: 32px;
+    min-height: 320px;
+  }
+
+  popup-system .popup-promo {
+    border: 2px dashed rgba(255, 255, 255, 0.8);
+    background: rgba(0, 0, 0, 0.55);
+    color: #ffffff;
+    padding: 16px 24px;
+    border-radius: 12px;
+    display: grid;
+    gap: 6px;
+    text-align: center;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  popup-system .popup-promo__label {
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  popup-system .popup-promo__value {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  popup-system .popup-promo__hint {
+    font-size: 0.85rem;
+    opacity: 0.85;
+  }
+
+  popup-system[data-open] {
+    opacity: 1;
+  }
+
+  popup-system[data-open] .popup-dialog {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    popup-system,
+    popup-system .popup-dialog {
+      transition: none;
+      transform: none;
+    }
+  }
+
+  @media (max-width: 640px) {
+    popup-system .popup-dialog {
+      width: 100%;
+      margin: 0 12px;
+    }
+
+    popup-system .popup-media--background {
+      min-height: 260px;
+      padding: 20px;
+    }
+  }
+</style>
+
+<script src="{{ 'popup.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Popup system",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Awareness popup (image only)"
+    },
+    {
+      "type": "checkbox",
+      "id": "awareness_enabled",
+      "label": "Enable awareness popup",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "awareness_title",
+      "label": "Image alt text",
+      "default": "Welcome"
+    },
+    {
+      "type": "image_picker",
+      "id": "awareness_image",
+      "label": "Image"
+    },
+    {
+      "type": "url",
+      "id": "awareness_image_url",
+      "label": "Image URL (optional)"
+    },
+    {
+      "type": "color",
+      "id": "awareness_background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "awareness_text_color",
+      "label": "Text color",
+      "default": "#1a1a1a"
+    },
+    {
+      "type": "range",
+      "id": "awareness_max_width",
+      "label": "Max width (px)",
+      "min": 280,
+      "max": 720,
+      "step": 10,
+      "default": 520
+    },
+    {
+      "type": "range",
+      "id": "awareness_padding",
+      "label": "Padding (px)",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "awareness_border_radius",
+      "label": "Border radius (px)",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "awareness_overlay_opacity",
+      "label": "Overlay opacity (%)",
+      "min": 0,
+      "max": 90,
+      "step": 5,
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "awareness_delay",
+      "label": "Delay before showing (seconds)",
+      "min": 0,
+      "max": 2,
+      "step": 1,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "awareness_auto_close",
+      "label": "Auto-close duration (seconds)",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "default": 8
+    },
+    {
+      "type": "checkbox",
+      "id": "awareness_overlay_close",
+      "label": "Close on overlay click",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Conversion popup (image + promo code)"
+    },
+    {
+      "type": "checkbox",
+      "id": "conversion_enabled",
+      "label": "Enable conversion popup",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "conversion_title",
+      "label": "Image alt text",
+      "default": "Limited offer"
+    },
+    {
+      "type": "image_picker",
+      "id": "conversion_image",
+      "label": "Image"
+    },
+    {
+      "type": "url",
+      "id": "conversion_image_url",
+      "label": "Image URL (optional)"
+    },
+    {
+      "type": "text",
+      "id": "conversion_promo_code",
+      "label": "Promo code",
+      "default": "FlakeRamadan26"
+    },
+    {
+      "type": "color",
+      "id": "conversion_background_color",
+      "label": "Background color",
+      "default": "#111111"
+    },
+    {
+      "type": "color",
+      "id": "conversion_text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "conversion_max_width",
+      "label": "Max width (px)",
+      "min": 280,
+      "max": 720,
+      "step": 10,
+      "default": 520
+    },
+    {
+      "type": "range",
+      "id": "conversion_padding",
+      "label": "Padding (px)",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "conversion_border_radius",
+      "label": "Border radius (px)",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "conversion_overlay_opacity",
+      "label": "Overlay opacity (%)",
+      "min": 0,
+      "max": 90,
+      "step": 5,
+      "default": 55
+    },
+    {
+      "type": "range",
+      "id": "conversion_delay",
+      "label": "Delay before showing (seconds)",
+      "min": 10,
+      "max": 600,
+      "step": 10,
+      "default": 90
+    },
+    {
+      "type": "checkbox",
+      "id": "conversion_overlay_close",
+      "label": "Close on overlay click",
+      "default": true
+    }
+  ],
+  "presets": [
+    {
+      "name": "Popup system"
+    }
+  ]
+}
+{% endschema %}

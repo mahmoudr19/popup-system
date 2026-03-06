@@ -1,0 +1,84 @@
+{%- assign popup_id = popup_id | default: id -%}
+{%- assign label_id = popup_id | append: '-title' -%}
+{%- assign desc_id = popup_id | append: '-desc' -%}
+{%- assign overlay_alpha = overlay_opacity | times: 0.01 -%}
+
+<popup-system
+  class="popup-system"
+  data-popup-id="{{ popup_id }}"
+  data-popup-type="{{ popup_type }}"
+  data-lock-scroll="{{ lock_scroll }}"
+  data-overlay-close="{{ overlay_close }}"
+  data-delay="{{ delay | default: 0 }}"
+  data-auto-close="{{ auto_close | default: 0 }}"
+  data-storage-type="{{ storage_type }}"
+  data-storage-key="{{ storage_key }}"
+  {%- if awareness_key != blank -%}
+  data-awareness-key="{{ awareness_key }}"
+  {%- endif -%}
+  data-disabled="{{ disabled }}"
+  style="--popup-bg: {{ background_color }}; --popup-text: {{ text_color }}; --popup-max-width: {{ max_width }}px; --popup-padding: {{ padding }}px; --popup-radius: {{ border_radius }}px; --popup-overlay-opacity: {{ overlay_alpha }};"
+  hidden
+  aria-hidden="true"
+>
+  <div class="popup-overlay" data-popup-overlay></div>
+
+  <div
+    class="popup-dialog"
+    data-popup-dialog
+    role="dialog"
+    aria-modal="{{ lock_scroll }}"
+    {% if title != blank %}
+      aria-labelledby="{{ label_id }}"
+    {% else %}
+      aria-label="{{ popup_type | capitalize }} popup"
+    {% endif %}
+    {% if description != blank %}
+      aria-describedby="{{ desc_id }}"
+    {% endif %}
+    tabindex="-1"
+  >
+    <button type="button" class="popup-close" data-popup-close aria-label="Close">
+      <span aria-hidden="true">&times;</span>
+    </button>
+
+    {%- if popup_type == 'awareness' -%}
+      {%- if image != blank or image_url != blank -%}
+        <div class="popup-media popup-media--only">
+          {%- if image != blank -%}
+            {{ image | image_url: width: 1600 | image_tag: loading: 'lazy' }}
+          {%- else -%}
+            <img src="{{ image_url }}" alt="{{ title | escape }}" loading="lazy" />
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+    {%- endif -%}
+
+    {%- if popup_type == 'conversion' -%}
+      {%- if image != blank or image_url != blank -%}
+        <div
+          class="popup-media popup-media--background"
+          {%- if image != blank -%}
+            style="background-image: url('{{ image | image_url: width: 1600 }}');"
+          {%- else -%}
+            style="background-image: url('{{ image_url }}');"
+          {%- endif -%}
+          role="img"
+          aria-label="{{ title | escape }}"
+        >
+          <button
+            type="button"
+            class="popup-promo"
+            data-promo-copy
+            data-promo-value="{{ promo_code }}"
+            aria-live="polite"
+          >
+            <span class="popup-promo__label">Promo code</span>
+            <span class="popup-promo__value">{{ promo_code }}</span>
+            <span class="popup-promo__hint" data-promo-hint>Tap to copy</span>
+          </button>
+        </div>
+      {%- endif -%}
+    {%- endif -%}
+  </div>
+</popup-system>
